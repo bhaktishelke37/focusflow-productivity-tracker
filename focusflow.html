@@ -1,0 +1,278 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>FocusFlow</title>
+
+<style>
+body{
+    margin:0;
+    min-height:100vh;
+    display:flex;
+    justify-content:center;
+    align-items:center;
+    font-family:Arial,sans-serif;
+    background:linear-gradient(135deg,#1e1e2f,#16213e,#0f3460);
+    color:white;
+}
+
+.container{
+    width:500px;
+    padding:30px;
+    border-radius:20px;
+    text-align:center;
+    background:rgba(255,255,255,0.08);
+    backdrop-filter:blur(12px);
+}
+
+input{
+    width:80%;
+    padding:12px;
+    border:none;
+    border-radius:10px;
+    margin-bottom:20px;
+    font-size:15px;
+}
+
+#timer{
+    font-size:70px;
+    margin:20px;
+    font-weight:bold;
+}
+
+button{
+    padding:10px 18px;
+    margin:5px;
+    border:none;
+    border-radius:10px;
+    cursor:pointer;
+    font-size:14px;
+}
+
+.history{
+    margin-top:25px;
+    text-align:left;
+    background:rgba(255,255,255,0.05);
+    padding:15px;
+    border-radius:15px;
+    max-height:200px;
+    overflow-y:auto;
+}
+
+.task-item{
+    display:flex;
+    justify-content:space-between;
+    margin:10px 0;
+    padding:8px;
+    background:rgba(255,255,255,0.05);
+    border-radius:8px;
+}
+
+.delete-btn{
+    padding:4px 8px;
+    font-size:12px;
+}
+
+.stats{
+    margin-top:15px;
+    font-size:14px;
+    opacity:0.9;
+}
+</style>
+</head>
+
+<body>
+
+<div class="container">
+
+<h2>FocusFlow</h2>
+<p>Student Productivity Tracker</p>
+
+<input id="taskInput" placeholder="What are you working on?">
+
+<div id="mode">📚 Focus Session</div>
+
+<div id="timer">25:00</div>
+
+<button id="start">Start</button>
+<button id="complete">Complete Task</button>
+<button id="break">Take Break</button>
+<button id="reset">Reset</button>
+
+<div class="stats">
+Tasks Completed: <span id="taskCount">0</span><br>
+Total Focus Time: <span id="totalTime">0</span> mins
+</div>
+
+<div class="history">
+<h3>Completed Tasks</h3>
+<div id="historyList"></div>
+</div>
+
+</div>
+
+<script>
+
+let focusTime = 1500;
+let breakTime = 300;
+
+let timeLeft = focusTime;
+let timer = null;
+let running = false;
+let onBreak = false;
+
+let currentTaskSeconds = 0;
+let tasksCompleted = 0;
+let totalFocusMinutes = 0;
+
+const timerDisplay = document.getElementById("timer");
+const modeDisplay = document.getElementById("mode");
+const taskInput = document.getElementById("taskInput");
+const historyList = document.getElementById("historyList");
+const taskCount = document.getElementById("taskCount");
+const totalTime = document.getElementById("totalTime");
+
+
+function updateTimer(){
+
+    let minutes = Math.floor(timeLeft/60);
+    let seconds = timeLeft%60;
+
+    if(seconds < 10){
+        seconds = "0" + seconds;
+    }
+
+    timerDisplay.textContent = minutes + ":" + seconds;
+}
+
+
+function startSession(){
+
+    if(running) return;
+
+    running = true;
+
+    timer = setInterval(function(){
+
+        timeLeft--;
+
+        if(!onBreak){
+            currentTaskSeconds++;
+        }
+
+        updateTimer();
+
+        if(timeLeft <= 0){
+
+            clearInterval(timer);
+            running = false;
+
+            if(onBreak){
+
+                alert("Break Finished");
+
+                onBreak = false;
+                timeLeft = focusTime;
+                modeDisplay.textContent = "📚 Focus Session";
+            }
+
+            else{
+
+                alert("25 min session over");
+                startBreak();
+            }
+
+            updateTimer();
+        }
+
+    },1000);
+}
+
+
+function startBreak(){
+
+    clearInterval(timer);
+
+    running = false;
+    onBreak = true;
+    timeLeft = breakTime;
+
+    modeDisplay.textContent = "☕ Break Time";
+
+    updateTimer();
+}
+
+
+function completeTask(){
+
+    if(currentTaskSeconds === 0) return;
+
+    let taskName = taskInput.value.trim();
+
+    if(taskName === ""){
+        taskName = "Unnamed Task";
+    }
+
+    let mins = Math.floor(currentTaskSeconds/60);
+    let secs = currentTaskSeconds%60;
+
+    let div = document.createElement("div");
+    div.className = "task-item";
+
+    div.innerHTML = `
+        <span>${taskName} — ${mins}m ${secs}s</span>
+        <button class="delete-btn">❌</button>
+    `;
+
+    div.querySelector("button").onclick = function(){
+        div.remove();
+    }
+
+    historyList.appendChild(div);
+
+    tasksCompleted++;
+    taskCount.textContent = tasksCompleted;
+
+    totalFocusMinutes += mins;
+    totalTime.textContent = totalFocusMinutes;
+
+    clearInterval(timer);
+
+    running = false;
+    currentTaskSeconds = 0;
+    timeLeft = focusTime;
+
+    taskInput.value = "";
+    modeDisplay.textContent = "📚 Focus Session";
+
+    updateTimer();
+}
+
+
+function resetTask(){
+
+    clearInterval(timer);
+
+    running = false;
+    currentTaskSeconds = 0;
+    onBreak = false;
+    timeLeft = focusTime;
+
+    modeDisplay.textContent = "📚 Focus Session";
+
+    updateTimer();
+}
+
+
+document.getElementById("start").onclick = startSession;
+document.getElementById("complete").onclick = completeTask;
+document.getElementById("break").onclick = startBreak;
+document.getElementById("reset").onclick = resetTask;
+
+updateTimer();
+
+</script>
+
+</body>
+</html>
